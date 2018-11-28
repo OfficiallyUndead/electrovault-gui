@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Installer: Download Dependencies</title>
+    <link type="text/css" rel="stylesheet" href="../../assets/third-party/materialize/css/materialize.min.css" media="screen,projection" />
+</head>
+<body>
+    <div>
+        <h5 class="center-align"><img src="../../assets/appicon.ico" width="120" /></h5>
+    </div>
+    <div class="progress">
+        <div class="indeterminate"></div>
+    </div>
+    <div>
+        <p class="center-align">Starting download ...</p>
+    </div>
+    <script type="text/javascript" src="../../assets/third-party/materialize/js/materialize.min.js"></script>
+    <script>
+        const {ipcRenderer} = require('electron')
+        window.$ = window.jQuery = require("../../assets/third-party/jquery/jquery-3.3.1.min.js");
+        $.ajax({
+            method: "GET",
+            url: "https://api.github.com/repos/electroneum/electroneum/releases/latest",
+            success: function(data) {
+                ipcRenderer.send("trigger-download-dependencies", data);        
+            }
+        });
+        ipcRenderer.on("download-started", (event, arg) => {
+            $("p.center-align").html("Downloading " + arg)
+        });
+    </script>
+</body>
+</html>

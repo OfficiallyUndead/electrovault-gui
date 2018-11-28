@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link type="text/css" rel="stylesheet" href="../../assets/third-party/materialize/css/materialize.min.css" media="screen,projection" />
+    <style>
+        body {
+            background: url('../../assets/splash.bmp');
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 0;
+            padding: 0;
+        }
+        p {
+            bottom: 0;
+            left: 20px;
+            position: absolute;
+        }
+        .progress {
+            bottom: -14px;
+            position: absolute;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="hidden progress">
+        <div class="indeterminate"></div>
+    </div>
+    <p id="app-status">Loading ...</p>
+    <script type="text/javascript" src="../../assets/third-party/materialize/js/materialize.min.js"></script>
+    <script>
+        const {ipcRenderer} = require('electron');
+        // Trigger the install process - this checks for the latest version and downloads if neccessary
+        ipcRenderer.send("check-install");
+        
+        ipcRenderer.on("start-install", (event, arg) => {
+            ipcRenderer.send("install-dependencies");
+        });
+
+        // Sent from the main app with a message to be displayed
+        ipcRenderer.on("display-splash-message", (event, arg) => {
+            document.getElementById("app-status").innerHTML = arg;
+        });
+
+        ipcRenderer.on("extract-complete", (event, arg) => {
+            ipcRenderer.send("init-blockchain");
+        });
+    </script>
+</body>
+</html>
