@@ -170,6 +170,8 @@ ipcMain.on("init-blockchain", (event, arg) => {
             setTimeout(function(){
                 fetchAndDisplaySyncProgress();
             }, 3000);
+        } else if(data.toString('utf8').indexOf("src/cryptonote_protocol/cryptonote_protocol_handler.inl:1152") && data.toString('utf8').indexOf("Synced")) {
+            fetchAndDisplaySyncProgress();
         }
         console.log(data.toString('utf8'));
     });
@@ -185,7 +187,7 @@ function fetchAndDisplaySyncProgress() {
     jsonRpcRequest({}, "/getinfo").then((data) => {
         splashWindow.send("display-splash-message", "Syncing blockchain " + data.height + "/" + ((data.target_height == 0) ? data.height : data.target_height));
         if(data.height == data.target_height) {
-            splashWindow.quit();
+            // splashWindow.quit();
         }
     });
 }
