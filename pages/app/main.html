@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link type="text/css" rel="stylesheet" href="../../assets/third-party/materialize/css/materialize.min.css" media="screen,projection" />
+    <style>
+        iframe {
+            border: none;
+            float: right;
+            margin: 0px;
+            padding: 0px;
+            width: 71.5%;
+        }
+        #daemon-status img {
+            bottom: 70px;
+            left: 10px;
+            position: absolute;
+        }
+        #daemon-status-title {
+            bottom: 80px;
+            left: 40px;
+            position: absolute;
+        }
+        #daemon-status-title a:hover {
+            background-color: rgba(0,0,0,0);
+            cursor: default;
+        }
+        .progress {
+            bottom: 70px;
+            left: 73px;
+            position: absolute;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <ul id="slide-out" class="sidenav sidenav-fixed">
+        <li><a href="#!" data-page="send" class="sidenav-link">Send</a></li>
+        <li><a href="#!" data-page="receive" class="sidenav-link">Receive</a></li>
+        <li><a href="#!" data-page="daemon" class="sidenav-link">Daemon</a></li>
+        <li><a href="#!" data-page="settings" class="sidenav-link">Settings</a></li>
+        <div id="daemon-status">
+            <img src="../../assets/appicon.ico" width="50">
+            <li id="daemon-status-title"><a class="sidenav-link">Network Status: <span id="daemon-status-desc">Connecting</span></a></li>
+            <div class="progress">
+                <div id="progress-bar" class="indeterminate"></div>
+            </div>
+        </div>
+    </ul>
+    <iframe id="partial" src="partials/send.html"></iframe>
+    <script type="text/javascript" src="../../assets/third-party/materialize/js/materialize.min.js"></script>
+    <script>
+        window.$ = window.jQuery = require("../../assets/third-party/jquery/jquery-3.3.1.min.js");
+        const {ipcRenderer} = require('electron');
+
+        ipcRenderer.on("networkSyncing", function(event, arg) {
+            if(!$('#progress-bar').hasClass('determinate')) {
+                $('#progress-bar').removeClass('indeterminate').addClass('determinate');
+            }
+            if(arg > 0) {
+                if(arg == 100) {
+                    $('#daemon-status-desc').text("Syncing");
+                } else {
+                    $('#daemon-status-desc').text("Connected");
+                }
+            }
+            $('.progress .determinate').css('width', arg + '%');
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var elems = document.querySelectorAll('.sidenav');
+            var instances = M.Sidenav.init(elems, {});
+        });
+        $('.sidenav-link').on('click', function(){
+            $('#partial').prop('src', 'partials/' + $(this).data('page') + '.html');
+        });
+    </script>
+</body>
+</html>

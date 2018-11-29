@@ -20,47 +20,20 @@ let availableDownloads = [];
 let electroneumTag;
 let daemonVersion;
 
+let platform = os.platform();
+if(platform == "win32") { platform = "win"; }
+
 app.on('ready', function(){
     // Create the window
-    splashWindow = new BrowserWindow({center: true, frame: false, height: 400, width: 600});
+    // splashWindow = new BrowserWindow({center: true, frame: false, height: 400, width: 600});
+    splashWindow = new BrowserWindow({height: 600, resizable: false, width: 1080});
     splashWindow.loadURL(url.format({
         pathname: path.join(__dirname, 'pages/splash/splash.html'),
+        // pathname: path.join(__dirname, 'pages/wallet/wallet.html'),
         protocol: 'file:',
         slashes: true
     }));
-    splashWindow.send("display-splash-message", "Loading ...");
-    // installWindow = new BrowserWindow({center: true, frame: false, height: 190, width: 190});
-    // installWindow.hide();
-    // if(!hasDependencies()) {
-    //     // Load the installer to download the dependencies
-    //     installWindow.loadURL(url.format({
-    //         pathname: path.join(__dirname, 'pages/installer/installer-download.html'),
-    //         protocol: 'file:',
-    //         slashes: true
-    //     }));
-    // } else if (hasDependencies() && !dependenciesInstalled()) {
-    //     // Load the installer to extract the dependencies
-    //     installWindow.loadURL(url.format({
-    //         pathname: path.join(__dirname, 'pages/installer/installer-extract.html'),
-    //         protocol: 'file:',
-    //         slashes: true
-    //     }));
-    // } else if(hasDependencies() && dependenciesInstalled() && !bcIsLoaded()) {
-    //     // Load the installer to sync the blockchain
-    //     installWindow.loadURL(url.format({
-    //         pathname: path.join(__dirname, 'pages/installer/installer-sync.html'),
-    //         protocol: 'file:',
-    //         slashes: true
-    //     }));
-    // } else {
-    //     mainWindow = new BrowserWindow({center: true, frame: false, height: 180, width: 175});
-    //     // Load the wallet
-    //     mainWindow.loadURL(url.format({
-    //         pathname: path.join(__dirname, 'pages/wallet/wallet.html'),
-    //         protocol: 'file:',
-    //         slashes: true
-    //     }));
-    // }
+    // splashWindow.send("display-splash-message", "Loading ...");
 
     // Build the menu with the default template
     // const mainMenu = Menu.buildFromTemplate(defaultMenuTemplate);
@@ -101,7 +74,7 @@ ipcMain.on("check-install", (event, arg) => {
             fs.mkdirSync(path.join(__dirname, 'assets/bin/', tag));
         } else {
             // Check to see if the file is already downloaded
-            if(fs.existsSync(path.join(__dirname, 'assets/bin/', tag, availableDownloads[tag][os.platform()].filename))) {
+            if(fs.existsSync(path.join(__dirname, 'assets/bin/', tag, availableDownloads[tag][platform].filename))) {
                 // Check the daemon file exists
                 if(fs.existsSync(path.join(__dirname, 'assets/bin/', tag, "electroneumd"))) {
                     splashWindow.send("extract-complete");
@@ -116,7 +89,7 @@ ipcMain.on("check-install", (event, arg) => {
         splashWindow.send("display-splash-message", "Downloading dependencies ...");
 
         // Download the file from github - once the file is downloaded so now send the trigger to unzip the package
-        download(BrowserWindow.getFocusedWindow(), availableDownloads[tag][os.platform()].url, {directory: path.join(__dirname, 'assets/bin/', tag)})
+        download(BrowserWindow.getFocusedWindow(), availableDownloads[tag][platform].url, {directory: path.join(__dirname, 'assets/bin/', tag)})
             .then(dl => splashWindow.send("start-install"));
 
     });
@@ -124,10 +97,10 @@ ipcMain.on("check-install", (event, arg) => {
 
 ipcMain.on("install-dependencies", (event, arg) => {
     splashWindow.send("display-splash-message", "Installing dependencies ...");
-    if(os.platform() == "win32") {
+    if(platform == "win32") {
         // Extract the zip file
         // never use readFileSync - only used here to simplify the example
-        var buffer = fs.readFileSync(path.join(__dirname, 'assets/bin/', electroneumTag, availableDownloads[electroneumTag][os.platform()].filename));  
+        var buffer = fs.readFileSync(path.join(__dirname, 'assets/bin/', electroneumTag, availableDownloads[electroneumTag][platform].filename));  
 
         unzipper.Open.buffer(buffer)
         .then(function(d) {
@@ -141,7 +114,7 @@ ipcMain.on("install-dependencies", (event, arg) => {
         });
     } else {
         decompress(
-            path.join(__dirname, 'assets/bin/', electroneumTag, availableDownloads[electroneumTag][os.platform()].filename), 
+            path.join(__dirname, 'assets/bin/', electroneumTag, availableDownloads[electroneumTag][platform].filename), 
             path.join(__dirname, 'assets/bin/', electroneumTag)
         ).then(files => {
             splashWindow.send("extract-complete");
@@ -176,6 +149,13 @@ ipcMain.on("init-blockchain", (event, arg) => {
         console.log(data.toString('utf8'));
     });
 
+    splashWindow.loadURL(url.format({
+        // pathname: path.join(__dirname, 'pages/splash/splash.html'),
+        pathname: path.join(__dirname, 'pages/app/main.html'),
+        protocol: 'file:',
+        slashes: true
+    }));
+
     proc.stderr.on('data', data => {
         console.log("some kind of error from daemon");
         console.log(data.toString('utf8'));
@@ -186,8 +166,13 @@ function fetchAndDisplaySyncProgress() {
     console.log("get local height");
     jsonRpcRequest({}, "/getinfo").then((data) => {
         splashWindow.send("display-splash-message", "Syncing blockchain " + data.height + "/" + ((data.target_height == 0) ? data.height : data.target_height));
-        if(data.height == data.target_height) {
-            // splashWindow.quit();
+        console.log(typeof data.height);
+        console.log(typeof data.target_height);
+        console.log(typeof data.height == "number" && typeof data.target_height == "number" && data.target_height > 0);
+        if(typeof data.height == "number" && typeof data.target_height == "number" && data.target_height > 0) {
+            var percentSynced = ((data.height / data.target_height) * 100);
+            console.log("percent " + percentSynced);
+            splashWindow.send("networkSyncing", percentSynced);
         }
     });
 }
@@ -267,7 +252,7 @@ ipcMain.on("trigger-download-dependencies", (event, arg) => {
     }
 
     // Download the file from github
-    download(BrowserWindow.getFocusedWindow(), availableDownloads[tag][os.platform()].url, {directory: path.join(__dirname, 'assets/bin/', tag, availableDownloads[tag][os.platform()].filename)})
+    download(BrowserWindow.getFocusedWindow(), availableDownloads[tag][platform].url, {directory: path.join(__dirname, 'assets/bin/', tag, availableDownloads[tag][platform].filename)})
         .then(dl => console.log("do something after download"));
 
     // installWindow.webContents.session.on('will-download', (event, item, webContents) => {
